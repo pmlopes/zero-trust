@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "description": "",
   "scripts": {
-    "start": "reveal-md zta.md",
+    "start": "reveal-md index.md",
     "build": "reveal-md --static out"
   },
   "dependencies": {
