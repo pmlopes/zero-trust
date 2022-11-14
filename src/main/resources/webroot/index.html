@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Zero Trust</title>
+  <link rel="stylesheet" href="https://unpkg.com/mvp.css@1.12/mvp.css">
+</head>
+<body>
+  <div>
+
+    <ul>
+      <li>
+        <a href="/protected/simple">AuthZ will be performed on all nodes</a>
+      </li>
+    </ul>
+
+    <ol>
+      <li>A request from the user browser will arrive at the server secured connection using HTTPS</li>
+      <li>If user is not authenticated, user is redirected to Google to assert the identity</li>
+      <li>Google will return an <code>access_token</code> + <code>id_token</code></li>
+      <li>Request will go to the microservice including <code>id_token</code></li>
+      <li>Microservice will attest <code>id_token</code> and execute</li>
+    </ol>
+
+    <ul>
+      <li>
+        <a href="/protected/5secs">AuthZ will be performed on all nodes (and require a fresh token (5s))</a>
+      </li>
+    </ul>
+
+    <ol>
+      <li>Build on the previous example, we can enforce even stricter rules. We will allow <code>id_token</code>s that
+        are generated within 5 seconds, imagine a scenario where you need to confirm that no one is taking
+        over the user desk during a break.</li>
+    </ol>
+  </div>
+</body>
+</html>
