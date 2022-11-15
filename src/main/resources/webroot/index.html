@@ -8,19 +8,40 @@
 <body>
   <div>
 
+    <h3>Source: https://github.com/pmlopes/zero-trust</h3>
+
+    <hr>
+
     <ul>
       <li>
         <a href="/protected/simple">AuthZ will be performed on all nodes</a>
       </li>
     </ul>
 
-    <ol>
-      <li>A request from the user browser will arrive at the server secured connection using HTTPS</li>
-      <li>If user is not authenticated, user is redirected to Google to assert the identity</li>
-      <li>Google will return an <code>access_token</code> + <code>id_token</code></li>
-      <li>Request will go to the microservice including <code>id_token</code></li>
-      <li>Microservice will attest <code>id_token</code> and execute</li>
-    </ol>
+    <pre>
+┌─────────┐              8  ┌─────────┐
+│         │◄────────────────┤         │                  7  ┌───────────────┐
+│         │                 │         │◄────────────────────┤               │
+│         │                 │         │                     │               │
+│         │      HTTPS      │         │  EventBus over SSL  │               │
+│         ├────────────────►│ HTTPS   ├────────┬───────────►│ Vert.x        │
+│ Browser │  1              │ Vert.x  │  4     │    ▲       │ Microservice  │
+│         │                 │ App     │        │    │       └───────────────┘
+└─────────┘                 └──┬───▲──┘        │    │
+                               │   │           │    │
+                             2 │   │ 3         │    │
+                               │   │           │    │
+                               │   │           │5   │ 6
+                               │   │           │    │
+                               │   │          ┌▼────┴───┐
+                               │   └──────────┤ Google  │
+                               │              │ OAuth2  │
+                               └─────────────►│         │
+                                              └─────────┘
+    </pre>
+
+
+    <hr>
 
     <ul>
       <li>
@@ -28,11 +49,36 @@
       </li>
     </ul>
 
-    <ol>
-      <li>Build on the previous example, we can enforce even stricter rules. We will allow <code>id_token</code>s that
-        are generated within 5 seconds, imagine a scenario where you need to confirm that no one is taking
-        over the user desk during a break.</li>
-    </ol>
+
+    <pre>
+                                            ┌────────────┐
+                                            │ 5s Custom  │
+                                            │    Rule    │
+                                            └─────────┬──┘
+                                                 ▲    │
+                                                7│    │8
+                                                 │    │
+┌─────────┐              10 ┌─────────┐          │    │
+│         │◄────────────────┤ if 401  │          │    │  9  ┌───────────────┐
+│         │                 │   retry │◄─────────┼────┼─────┤               │
+│         │                 │         │          │    │     │               │
+│         │      HTTPS      │         │  EventBus│over▼SSL  │               │
+│         ├────────────────►│ HTTPS   ├────────┬─┴─────────►│ Vert.x        │
+│ Browser │  1              │ Vert.x  │  4     │    ▲       │ Microservice  │
+│         │                 │ App     │        │    │       └───────────────┘
+└─────────┘                 └──┬───▲──┘        │    │
+                               │   │           │    │
+                             2 │   │ 3         │    │
+                               │   │           │    │
+                               │   │           │5   │ 6
+                               │   │           │    │
+                               │   │          ┌▼────┴───┐
+                               │   └──────────┤ Google  │
+                               │              │ OAuth2  │
+                               └─────────────►│         │
+                                              └─────────┘
+    </pre>
+
   </div>
 </body>
 </html>
