@@ -18,7 +18,9 @@ public class Main {
       .setEventBusOptions(
         new EventBusOptions()
           .setSsl(true)
-          .setKeyStoreOptions(new JksOptions().setPath("eventbus.jks").setPassword(EVENTBUS_X509_SECRET)));
+          .setKeyStoreOptions(new JksOptions()
+                  .setPath("eventbus.jks")
+                  .setPassword(EVENTBUS_X509_SECRET)));
 
     var vertx = Vertx.vertx(options);
 

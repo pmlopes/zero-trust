@@ -14,6 +14,7 @@ public class MicroServiceImpl implements MicroService {
 
   @Override
   public Future<String> execute() {
+    // Step 6: Microservice is executed
     return Future.succeededFuture(BANNER + "Zero Trust is Awesome!");
   }
 

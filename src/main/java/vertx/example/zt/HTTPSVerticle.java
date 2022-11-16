@@ -20,7 +20,11 @@ public class HTTPSVerticle extends AbstractVerticle {
   @Override
   public void start(Promise<Void> ready) {
 
-    GoogleAuth.discover(vertx, new OAuth2Options().setClientId(OAUTH2_CLIENT_ID).setClientSecret(OAUTH2_CLIENT_SECRET))
+    GoogleAuth.discover(
+        vertx,
+        new OAuth2Options()
+          .setClientId(OAUTH2_CLIENT_ID)
+          .setClientSecret(OAUTH2_CLIENT_SECRET))
       .compose(oauth2 -> {
         var app = Router.router(vertx);
         // serve the HTML
@@ -32,18 +36,17 @@ public class HTTPSVerticle extends AbstractVerticle {
           .handler(SessionHandler
             .create(LocalSessionStore.create(vertx)));
 
-        // refresh users setup
-        app.route("/user/refresh")
-          // this is a high precedence handler
+        // This is an experimental feature not yet merged
+        app.route("/admin")
           .handler(UserSwitchHandler.refresh());
 
         app.route()
-            .handler(ctx -> {
-              System.out.println("Browser to Web: \uD83D\uDCE6️-> \uD83D\uDD10 -> \uD83D\uDCE6");
-              ctx.next();
-            });
+          .handler(ctx -> {
+            System.out.println("Browser to Web: \uD83D\uDCE6️-> \uD83D\uDD10 -> \uD83D\uDCE6");
+            ctx.next();
+          });
 
-        // secure the remaining routes
+        // Step 2: Unauthenticated requests will go to Google to attest identity
         app.route("/protected/*")
           // security handler
           .handler(
@@ -53,18 +56,20 @@ public class HTTPSVerticle extends AbstractVerticle {
               .setupCallback(app.get("/callback"))
           );
 
+        // Step 3: AuthN request arrive here from Google with 2 tokens { access_token, id_token }
         app.route("/protected/simple")
           .handler(ctx -> {
+            // Step 4: Request goes over eventBus to microservice along with { id_token }
             vertx.eventBus()
               .<String>request(MicroService.ADDRESS, null, new DeliveryOptions()
                 .addHeader("action", "execute")
                 .addHeader("auth-token", ctx.user().get("id_token")))
               .compose(msg -> {
-                  System.out.println("\uD83C\uDFC6 Microservice call OK!");
+                System.out.println("\uD83C\uDFC6 Microservice call OK!");
                 return ctx.response()
                   .putHeader("Content-Type", "text/plain; charset=UTF-8")
                   .end(msg.body());
-                })
+              })
               .onFailure(ctx::fail);
           });
 
@@ -84,9 +89,11 @@ public class HTTPSVerticle extends AbstractVerticle {
               })
               .recover(err -> {
                 if (err instanceof ReplyException) {
+                  // Step 8b: Recover in case of 401, by forcing a refresh + restart
+                  //          of the request
                   if (((ReplyException) err).failureCode() == 401) {
                     System.out.println("\uD83D\uDEA8 request a fresh token");
-                    return ctx.redirect("/user/refresh?redirect_uri=/protected/5secs");
+                    return ctx.redirect("/admin?redirect_uri=/protected/5secs");
                   }
                 }
                 System.out.println("\uD83C\uDF89 Microservice call FAIL!");
@@ -95,6 +102,7 @@ public class HTTPSVerticle extends AbstractVerticle {
               .onFailure(ctx::fail);
           });
 
+        // Step 1: All incoming messages are arriving over HTTPS
         return vertx.createHttpServer(
             new HttpServerOptions()
               .setSsl(true)

@@ -18,17 +18,20 @@ public class EventBusVerticle extends AbstractVerticle {
   @Override
   public void start(Promise<Void> ready) {
 
-    // TODO: providers should tag the user object with a unique name
-    GoogleAuth.discover(vertx, new OAuth2Options().setClientId(OAUTH2_CLIENT_ID).setClientSecret(OAUTH2_CLIENT_SECRET))
+    GoogleAuth.discover(
+        vertx,
+        new OAuth2Options()
+          .setClientId(OAUTH2_CLIENT_ID)
+          .setClientSecret(OAUTH2_CLIENT_SECRET))
       .onSuccess(oauth2 -> {
         MicroService service = new MicroServiceImpl();
 
         // Register the handler
         new ServiceBinder(vertx)
           .setAddress(MicroService.ADDRESS)
-          // Secure the messages in transit
+          // Step 5: Request validates { id_token } to confirm caller identity
           .addInterceptor(AuthenticationInterceptor.create(oauth2))
-          // Add more specific interceptors
+          // Step 7b: Extra custom rule, token older than 5s is invalid
           .addInterceptor("executeWithin5secs", Require.authnWithIn(5))
           // Finally allow executing "our" business logic
           .register(MicroService.class, service);
@@ -40,7 +43,7 @@ public class EventBusVerticle extends AbstractVerticle {
 
 class Require {
   static ServiceInterceptor authnWithIn(int secs) {
-    return (vertx, ctx, body) ->  {
+    return (vertx, ctx, body) -> {
       try {
         User user = (User) ctx.get("user");
         // User must not be expired
